@@ -1,0 +1,9 @@
+node_modules
+.vite
+out
+dist
+package-lock.json
+
+# Excluded from formatting (mirrors previous biome config)
+*.config.ts
+src/main.ts

@@ -1,23 +1,31 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
+import Database from 'better-sqlite3';
 import started from 'electron-squirrel-startup';
+import { createDb, setDb } from '@/main/db';
+import { migrate } from '@/main/migrate';
+import { registerIpc } from '@/main/ipc';
+import { registerImageProtocol, registerImageScheme } from '@/main/protocol';
+import { setUploadsDir } from '@/main/services/images';
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
 
+registerImageScheme();
+
 const createWindow = () => {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
     },
   });
 
-  // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
@@ -25,19 +33,26 @@ const createWindow = () => {
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
-
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
 };
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+async function bootstrap(): Promise<void> {
+  const uploadsDir = path.join(app.getPath('userData'), 'uploads');
+  setUploadsDir(uploadsDir);
+  registerImageProtocol(uploadsDir);
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+  const database = new Database(path.join(app.getPath('userData'), 'app.db'));
+  const db = createDb(database);
+  setDb(db);
+  await migrate(db);
+
+  registerIpc();
+  createWindow();
+}
+
+app.on('ready', () => {
+  void bootstrap();
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -45,12 +60,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.

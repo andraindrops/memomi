@@ -1,27 +1,16 @@
-import React, { useState } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { App } from "@/renderer/App";
 
 import "./index.css";
 
-function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <main className="p-4 font-mono">
-      <div>
-        Count: <span>{count}</span>
-      </div>
-      <div>
-        <button type="button" onClick={() => setCount((value) => value + 1)}>
-          Increment
-        </button>
-      </div>
-    </main>
-  );
+const root = document.getElementById("root");
+if (root == null) {
+  throw new Error("Missing #root element");
 }
 
-createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
+createRoot(root).render(
+  <StrictMode>
     <App />
-  </React.StrictMode>,
+  </StrictMode>,
 );

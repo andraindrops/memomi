@@ -10,6 +10,7 @@ import {
   TabsTrigger,
 } from "@/renderer/components/ui/tabs";
 import { Frontmatter } from "@/renderer/components/domain/concept/frontmatter";
+import { MarkdownEditor } from "@/renderer/components/domain/concept/markdown-editor";
 import type { EditorState } from "@/renderer/components/domain/concept/main";
 import type {
   FrontmatterSchema,
@@ -68,15 +69,6 @@ export function Concept({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="concept-title">Title</Label>
-        <Input
-          id="concept-title"
-          value={asString({ value: editor.frontmatter.title })}
-          onChange={(e) => onChangeFrontmatterKey("title", e.target.value)}
-        />
-      </div>
-
       <Tabs defaultValue="content" className="gap-4">
         <TabsList>
           <TabsTrigger value="content">Content</TabsTrigger>
@@ -85,18 +77,24 @@ export function Concept({
 
         <TabsContent value="content" className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="concept-body">Body</Label>
-            <Textarea
-              id="concept-body"
-              value={editor.body}
-              onChange={(e) => onChangeBody(e.target.value)}
-              spellCheck={false}
-              className="min-h-80 font-mono text-sm"
+            <Label>Body</Label>
+            <MarkdownEditor
+              defaultValue={editor.body}
+              onChange={onChangeBody}
             />
           </div>
         </TabsContent>
 
         <TabsContent value="metadata" className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="concept-title">Title</Label>
+            <Input
+              id="concept-title"
+              value={asString({ value: editor.frontmatter.title })}
+              onChange={(e) => onChangeFrontmatterKey("title", e.target.value)}
+            />
+          </div>
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="concept-description">Description</Label>
             <Textarea

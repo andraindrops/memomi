@@ -10,8 +10,9 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // Native modules and electron must not be bundled by Vite.
-      external: ['better-sqlite3', 'electron'],
+      // Electron must not be bundled by Vite. Everything else (incl. the AI SDK,
+      // gray-matter, js-yaml) is pure JS and is safe to bundle.
+      external: ['electron'],
     },
   },
 });

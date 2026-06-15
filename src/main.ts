@@ -1,23 +1,17 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
-import Database from 'better-sqlite3';
 import started from 'electron-squirrel-startup';
-import { createDb, setDb } from '@/main/db';
-import { migrate } from '@/main/migrate';
 import { registerIpc } from '@/main/ipc';
-import { registerImageProtocol, registerImageScheme } from '@/main/protocol';
-import { setUploadsDir } from '@/main/services/images';
+import { buildApplicationMenu } from '@/main/menu';
 
 if (started) {
   app.quit();
 }
 
-registerImageScheme();
-
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -33,24 +27,13 @@ const createWindow = () => {
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
+
+  buildApplicationMenu(mainWindow);
 };
 
-async function bootstrap(): Promise<void> {
-  const uploadsDir = path.join(app.getPath('userData'), 'uploads');
-  setUploadsDir(uploadsDir);
-  registerImageProtocol(uploadsDir);
-
-  const database = new Database(path.join(app.getPath('userData'), 'app.db'));
-  const db = createDb(database);
-  setDb(db);
-  await migrate(db);
-
+app.on('ready', () => {
   registerIpc();
   createWindow();
-}
-
-app.on('ready', () => {
-  void bootstrap();
 });
 
 app.on('window-all-closed', () => {

@@ -1,33 +1,50 @@
+import type { BundleSchema, BundleNodeSchema } from "@/shared/schemas/bundle";
 import type {
-  CreateTodoInput,
-  Todo,
-  UpdateTodoInput,
-} from "@/shared/schemas/todo";
+  ConceptSchema,
+  ConceptSummarySchema,
+  CreateConceptInputSchema,
+  CreateConceptDirectoryInputSchema,
+  RenameConceptInputSchema,
+} from "@/shared/schemas/concept";
 
+// prettier-ignore
 export const IPC = {
-  todosList: "todos:list",
-  todosGet: "todos:get",
-  todosCreate: "todos:create",
-  todosUpdate: "todos:update",
-  todosDelete: "todos:delete",
-  imagesSave: "images:save",
+  bundleRead:             "bundle:read",
+  bundleCurrent:          "bundle:current",
+  bundleTree:             "bundle:tree",
+  conceptList:            "concept:list",
+  conceptRead:            "concept:read",
+  conceptCreate:          "concept:create",
+  conceptUpdate:          "concept:update",
+  conceptDelete:          "concept:delete",
+  conceptRename:          "concept:rename",
+  conceptDirectoryCreate: "conceptDirectory:create",
+  menuOpenBundle:         "menu:open-bundle",
 } as const;
 
-export interface SaveImageInput {
-  name: string;
-  bytes: Uint8Array;
-}
-
 export interface AppApi {
-  todos: {
-    list(): Promise<Todo[]>;
-    get(id: string): Promise<Todo>;
-    create(input: CreateTodoInput): Promise<Todo>;
-    update(id: string, input: UpdateTodoInput): Promise<Todo>;
-    delete(id: string): Promise<void>;
+  bundle: {
+    read(): Promise<BundleSchema | null>;
+    current(): Promise<{ root: string } | null>;
+    tree(): Promise<BundleNodeSchema>;
   };
-  images: {
-    save(input: SaveImageInput): Promise<string>;
+  concept: {
+    list(): Promise<ConceptSummarySchema[]>;
+    read(path: string): Promise<ConceptSchema>;
+    create(input: CreateConceptInputSchema): Promise<ConceptSchema>;
+    update(input: {
+      path: string;
+      frontmatter: Record<string, unknown>;
+      body: string;
+    }): Promise<ConceptSchema>;
+    delete(path: string): Promise<void>;
+    rename(input: RenameConceptInputSchema): Promise<{ path: string }>;
+  };
+  conceptDirectory: {
+    create(input: CreateConceptDirectoryInputSchema): Promise<{ path: string }>;
+  };
+  menu: {
+    onOpenBundle(callback: () => void): () => void;
   };
 }
 

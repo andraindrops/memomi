@@ -3,6 +3,7 @@ import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerIpc } from '@/main/ipc';
 import { buildApplicationMenu } from '@/main/menu';
+import { openDefaultBundle } from '@/main/services/domain/bundle';
 
 if (started) {
   app.quit();
@@ -31,8 +32,9 @@ const createWindow = () => {
   buildApplicationMenu(mainWindow);
 };
 
-app.on('ready', () => {
+app.on('ready', async () => {
   registerIpc();
+  await openDefaultBundle();
   createWindow();
 });
 

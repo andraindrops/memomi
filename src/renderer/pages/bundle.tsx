@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { FolderOpen } from "lucide-react";
 import { Route, Switch, useLocation } from "wouter";
 import { toast } from "sonner";
-import { Button } from "@/renderer/components/ui/button";
 import { api } from "@/renderer/lib/api";
 import {
   conceptHref,
@@ -193,13 +191,7 @@ export function BundlePage() {
   );
 
   if (root == null) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-4">
-        <FolderOpen className="size-10 text-muted-foreground" />
-        <p className="text-muted-foreground">No OKF bundle is open.</p>
-        <Button onClick={() => void openBundle()}>Open Bundle</Button>
-      </div>
-    );
+    return <LoadingMessage />;
   }
 
   return (

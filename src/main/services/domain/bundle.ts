@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { dialog } from "electron";
 import type {
@@ -22,6 +23,18 @@ import { isMarkdownFile } from "@/main/lib/markdown";
 import { readOrder, writeOrder } from "@/main/lib/order";
 import { updateLinks } from "@/main/services/domain/references";
 import { AppError, NotFoundError } from "@/main/lib/errors";
+
+// The bundle opened by default on launch, when no other bundle is selected.
+export const DEFAULT_BUNDLE_ROOT = path.join(os.homedir(), ".memomi", "bundle");
+
+// Create the default bundle directory if missing and open it as the current
+// bundle. Called at startup so the app always has a bundle to work with.
+export async function openDefaultBundle(): Promise<BundleSchema> {
+  await fs.mkdir(DEFAULT_BUNDLE_ROOT, { recursive: true });
+  setCurrentBundle({ root: DEFAULT_BUNDLE_ROOT });
+  const tree = await listBundleTree();
+  return { root: DEFAULT_BUNDLE_ROOT, tree };
+}
 
 export async function readBundle(): Promise<BundleSchema | null> {
   const result = await dialog.showOpenDialog({

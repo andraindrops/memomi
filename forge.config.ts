@@ -1,15 +1,8 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
-import { MakerAppImage } from '@reforged/maker-appimage';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
-
-const targetArch =
-  process.argv.find((arg) => arg.startsWith('--arch='))?.split('=')[1] ??
-  process.arch;
-const isArm64 = targetArch === 'arm64';
 
 // prettier-ignore
 const macSigning = process.env.APPLE_API_KEY_ID
@@ -35,11 +28,7 @@ const config: ForgeConfig = {
     asar: true,
     ...macSigning,
   },
-  makers: [
-    new MakerZIP({}, ['darwin', 'win32']),
-    ...(isArm64 ? [] : [new MakerSquirrel({})]),
-    new MakerAppImage(),
-  ],
+  makers: [new MakerZIP({}, ['darwin'])],
   plugins: [
     new VitePlugin({
       build: [

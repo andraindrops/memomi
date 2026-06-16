@@ -228,3 +228,33 @@ describe("serializeConcept round-trip", () => {
     );
   });
 });
+
+describe("reference propagation", () => {
+  async function setBody(p: string, body: string): Promise<void> {
+    const concept = await readConcept({ path: p });
+    await updateConcept({ path: p, frontmatter: concept.frontmatter, body });
+  }
+
+  it("rewrites links in other concepts when a file is renamed", async () => {
+    await createConcept({ directory: "/", fileName: "orders" });
+    await createConcept({ directory: "/", fileName: "ref" });
+    await setBody("/ref.md", "See [Orders](/orders.md).");
+
+    await renameConcept({ path: "/orders.md", newName: "sales-orders" });
+
+    const ref = await readConcept({ path: "/ref.md" });
+    expect(ref.body).toContain("[Orders](/sales-orders.md)");
+  });
+
+  it("unwraps links to a concept that is deleted", async () => {
+    await createConcept({ directory: "/", fileName: "orders" });
+    await createConcept({ directory: "/", fileName: "ref" });
+    await setBody("/ref.md", "See [Orders](/orders.md).");
+
+    await deleteConcept({ path: "/orders.md" });
+
+    const ref = await readConcept({ path: "/ref.md" });
+    expect(ref.body).toContain("See Orders.");
+    expect(ref.body).not.toContain("](/orders.md)");
+  });
+});

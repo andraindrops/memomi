@@ -8,10 +8,12 @@ import {
   renameConceptInputZodSchema,
   updateConceptInputZodSchema,
 } from "@/shared/schemas/concept";
+import { reorderInputZodSchema } from "@/shared/schemas/bundle";
 import {
   getCurrentBundle,
   readBundle,
   listBundleTree,
+  reorder,
 } from "@/main/services/domain/bundle";
 import {
   createConcept,
@@ -28,6 +30,7 @@ export function registerIpc(): void {
   ipcMain.handle(IPC.bundleRead,    () => readBundle());
   ipcMain.handle(IPC.bundleCurrent, () => getCurrentBundle());
   ipcMain.handle(IPC.bundleTree,    () => listBundleTree());
+  ipcMain.handle(IPC.bundleReorder, (_e, input: unknown) => reorder(reorderInputZodSchema.parse(input)));
 
   ipcMain.handle(IPC.conceptList,   ()                   => listConcepts());
   ipcMain.handle(IPC.conceptRead,   (_e, path: unknown)  => readConcept(readConceptInputZodSchema.parse({ path })));

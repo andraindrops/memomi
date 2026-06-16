@@ -52,14 +52,16 @@ export function BundlePage() {
     void reload();
   }, [root, reload]);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshOpenConcept = useCallback(() => setRefreshKey((k) => k + 1), []);
+
   const currentConcept = parseCurrentConcept(location);
-  const conceptLoader = useCallback(
-    () =>
-      currentConcept == null
-        ? Promise.resolve(null)
-        : api.concept.read(currentConcept),
-    [currentConcept],
-  );
+  const conceptLoader = useCallback(() => {
+    void refreshKey;
+    return currentConcept == null
+      ? Promise.resolve(null)
+      : api.concept.read(currentConcept);
+  }, [currentConcept, refreshKey]);
 
   const { state: conceptState } = useFetchState({
     loader: conceptLoader,
@@ -116,6 +118,7 @@ export function BundlePage() {
           newName,
         });
         await reload();
+        refreshOpenConcept();
         const current = parseCurrentConcept(location);
         if (current === oldPath) {
           navigate(conceptHref(newPath));
@@ -127,7 +130,7 @@ export function BundlePage() {
         toast.error(errorMessage({ error, fallback: "Failed to rename" }));
       }
     },
-    [reload, location, navigate],
+    [reload, location, navigate, refreshOpenConcept],
   );
 
   const deleteEntry = useCallback(
@@ -139,12 +142,42 @@ export function BundlePage() {
           navigate("/");
         }
         await reload();
+        refreshOpenConcept();
         toast.success("Deleted");
       } catch (error) {
         toast.error(errorMessage({ error, fallback: "Failed to delete" }));
       }
     },
-    [reload, location, navigate],
+    [reload, location, navigate, refreshOpenConcept],
+  );
+
+  const reorder = useCallback(
+    async (directory: string, orderedNames: string[], movedPath?: string) => {
+      try {
+        const { path: newPath } = await api.bundle.reorder({
+          directory,
+          orderedNames,
+          movedPath,
+        });
+        await reload();
+        refreshOpenConcept();
+        // A move happened: follow the open concept (or its ancestor) to its new path.
+        if (newPath != null && movedPath != null) {
+          const current = parseCurrentConcept(location);
+          if (current === movedPath) {
+            navigate(conceptHref(newPath));
+          } else if (current?.startsWith(`${movedPath}/`)) {
+            navigate(
+              conceptHref(`${newPath}${current.slice(movedPath.length)}`),
+            );
+          }
+          toast.success("Moved");
+        }
+      } catch (error) {
+        toast.error(errorMessage({ error, fallback: "Failed to reorder" }));
+      }
+    },
+    [reload, location, navigate, refreshOpenConcept],
   );
 
   const updateEntry = useCallback(
@@ -152,7 +185,6 @@ export function BundlePage() {
       try {
         await api.concept.update(input);
         await reload();
-        toast.success("Saved");
       } catch (error) {
         toast.error(errorMessage({ error, fallback: "Failed to save" }));
       }
@@ -179,16 +211,17 @@ export function BundlePage() {
           createDirectory={createDirectory}
           renameEntry={renameEntry}
           deleteEntry={deleteEntry}
+          reorder={reorder}
         />
       </aside>
-      <main className="min-w-0 flex-1 overflow-auto p-6">
+      <main className="min-w-0 flex-1 overflow-auto p-2">
         <Switch>
           <Route path="/concept/:path">
             {conceptState.status === "error" ? (
               <p className="text-destructive">{conceptState.message}</p>
             ) : loadedConcept != null ? (
               <Main
-                key={loadedConcept.path}
+                key={`${loadedConcept.path}:${loadedConcept.updatedAt ?? ""}`}
                 concept={loadedConcept}
                 updateEntry={updateEntry}
                 deleteEntry={deleteEntry}

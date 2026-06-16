@@ -1,4 +1,8 @@
-import type { BundleSchema, BundleNodeSchema } from "@/shared/schemas/bundle";
+import type {
+  BundleSchema,
+  BundleNodeSchema,
+  ReorderInputSchema,
+} from "@/shared/schemas/bundle";
 import type {
   ConceptSchema,
   ConceptSummarySchema,
@@ -12,6 +16,7 @@ export const IPC = {
   bundleRead:             "bundle:read",
   bundleCurrent:          "bundle:current",
   bundleTree:             "bundle:tree",
+  bundleReorder:          "bundle:reorder",
   conceptList:            "concept:list",
   conceptRead:            "concept:read",
   conceptCreate:          "concept:create",
@@ -27,6 +32,7 @@ export interface AppApi {
     read(): Promise<BundleSchema | null>;
     current(): Promise<{ root: string } | null>;
     tree(): Promise<BundleNodeSchema>;
+    reorder(input: ReorderInputSchema): Promise<{ path: string | null }>;
   };
   concept: {
     list(): Promise<ConceptSummarySchema[]>;

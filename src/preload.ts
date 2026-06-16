@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC, type AppApi } from "@/shared/ipc";
+import type { ReorderInputSchema } from "@/shared/schemas/bundle";
 import type {
   CreateConceptInputSchema,
   CreateConceptDirectoryInputSchema,
@@ -12,6 +13,7 @@ const api: AppApi = {
     read:    () => ipcRenderer.invoke(IPC.bundleRead),
     current: () => ipcRenderer.invoke(IPC.bundleCurrent),
     tree:    () => ipcRenderer.invoke(IPC.bundleTree),
+    reorder: (input: ReorderInputSchema) => ipcRenderer.invoke(IPC.bundleReorder, input),
   },
   concept: {
     list:   ()                                => ipcRenderer.invoke(IPC.conceptList),

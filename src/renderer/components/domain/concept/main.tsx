@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Concept } from "@/renderer/components/domain/concept/concept";
+import { Inspector } from "@/renderer/components/domain/concept/inspector";
 import type {
   ConceptSchema,
   FrontmatterSchema,
@@ -26,6 +27,7 @@ export function Main({
     frontmatter: concept.frontmatter,
     body: concept.body,
   });
+  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   const setBody = useCallback((body: string) => {
     setEditor((prev) => ({ ...prev, body }));
@@ -42,16 +44,43 @@ export function Main({
     }));
   }, []);
 
+  // Auto-save edits (debounced) instead of requiring a manual Save action.
+  useEffect(() => {
+    if (
+      editor.body === editor.baseline.body &&
+      editor.frontmatter === editor.baseline.frontmatter
+    ) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      void updateEntry({
+        path: editor.baseline.path,
+        frontmatter: editor.frontmatter,
+        body: editor.body,
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [editor, updateEntry]);
+
   return (
-    <div className="mx-auto max-w-3xl">
-      <Concept
-        editor={editor}
-        onChangeBody={setBody}
-        onChangeFrontmatter={setFrontmatter}
-        onChangeFrontmatterKey={setFrontmatterKey}
-        onUpdate={updateEntry}
-        onDelete={() => void deleteEntry(editor.baseline.path)}
-      />
+    <div className="flex min-h-full gap-6">
+      <div className="min-w-0 flex-1">
+        <Concept
+          editor={editor}
+          inspectorOpen={inspectorOpen}
+          onToggleInspector={() => setInspectorOpen((open) => !open)}
+          onChangeBody={setBody}
+          onDelete={() => void deleteEntry(editor.baseline.path)}
+        />
+      </div>
+      {inspectorOpen && (
+        <Inspector
+          editor={editor}
+          onChangeFrontmatter={setFrontmatter}
+          onChangeFrontmatterKey={setFrontmatterKey}
+          onClose={() => setInspectorOpen(false)}
+        />
+      )}
     </div>
   );
 }

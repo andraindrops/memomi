@@ -21,4 +21,13 @@ export const bundleZodSchema = z.object({
   tree: bundleNodeZodSchema,
 });
 
+export const reorderInputZodSchema = z.object({
+  directory: z.string(),
+  orderedNames: z.array(z.string()),
+  // When set, the entry is moved into `directory` before the order is applied.
+  // Omitted (or already in `directory`) means a plain in-place reorder.
+  movedPath: z.string().optional(),
+});
+
 export type BundleSchema = z.infer<typeof bundleZodSchema>;
+export type ReorderInputSchema = z.infer<typeof reorderInputZodSchema>;

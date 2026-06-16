@@ -33,7 +33,7 @@ export function Frontmatter({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border p-2">
+    <div className="flex flex-col gap-2 rounded-md">
       <PromptDialog
         open={adding}
         title="Add frontmatter key"
@@ -44,13 +44,13 @@ export function Frontmatter({
         onCancel={() => setAdding(false)}
       />
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Frontmatter</h3>
+        <h3 className="text-xs">Frontmatter</h3>
         <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
           <Plus className="size-4" /> Add key
         </Button>
       </div>
       {keys.length === 0 && (
-        <p className="text-sm text-muted-foreground">No metadata keys.</p>
+        <p className="text-xs text-muted-foreground">No metadata keys.</p>
       )}
       {keys.map((key) => (
         <div key={key} className="flex items-end gap-2">
@@ -84,7 +84,7 @@ function ValueEditor({
 }) {
   if (typeof value === "boolean") {
     return (
-      <label className="flex h-8 items-center gap-2 text-sm">
+      <label className="flex h-8 items-center gap-2 text-xs">
         <input
           type="checkbox"
           checked={value}

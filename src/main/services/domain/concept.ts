@@ -11,6 +11,7 @@ import type {
   RenameConceptInputSchema,
 } from "@/shared/schemas/concept";
 import { requireCurrentBundleRoot } from "@/main/services/domain/bundle";
+import { deleteLinks, updateLinks } from "@/main/services/domain/references";
 import {
   assertSafeName,
   normalizeBundlePath,
@@ -18,6 +19,7 @@ import {
   toBundlePath,
 } from "@/main/lib/paths";
 import { nextUntitledName, walkMdFiles } from "@/main/lib/fs";
+import { readOrder, writeOrder } from "@/main/lib/order";
 import { firstHeading, isMarkdownFile } from "@/main/lib/markdown";
 import { asString } from "@/main/lib/value";
 import {
@@ -160,6 +162,7 @@ export async function deleteConcept({
   }
 
   await fs.rm(abs, { recursive: stat.isDirectory(), force: false });
+  await deleteLinks({ root, target: bundlePath });
 }
 
 export async function renameConcept({
@@ -201,7 +204,31 @@ export async function renameConcept({
   }
 
   await fs.rename(abs, newAbs);
+  await preserveOrderOnRename({
+    parentAbs: path.dirname(abs),
+    oldName: path.basename(abs),
+    newName: finalName,
+  });
+  await updateLinks({ root, from: bundlePath, to: newBundlePath });
   return { path: newBundlePath };
+}
+
+// Keep a renamed entry in its current position by swapping its name in the
+// parent directory's order manifest, if one exists.
+async function preserveOrderOnRename({
+  parentAbs,
+  oldName,
+  newName,
+}: {
+  parentAbs: string;
+  oldName: string;
+  newName: string;
+}): Promise<void> {
+  const order = await readOrder({ absDir: parentAbs });
+  const index = order.indexOf(oldName);
+  if (index === -1) return;
+  order[index] = newName;
+  await writeOrder({ absDir: parentAbs, order });
 }
 
 export async function createConceptDirectory({

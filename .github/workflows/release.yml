@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            archs: arm64 x64
+          - os: windows-latest
+            archs: x64 arm64
+          - os: ubuntu-latest
+            archs: x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 || sudo apt-get install -y libfuse2t64
+
+      - run: npm ci
+
+      - name: Import Apple signing certificate
+        if: runner.os == 'macOS'
+        env:
+          MAC_CERT_P12: ${{ secrets.MAC_CERT_P12 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+        run: |
+          if [ -z "$MAC_CERT_P12" ]; then
+            echo "No MAC_CERT_P12 secret set — building unsigned."
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          echo "$MAC_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain        -p ci "$KEYCHAIN"
+          security set-keychain-settings  -lut 21600 "$KEYCHAIN"
+          security unlock-keychain        -p ci "$KEYCHAIN"
+          security import                 "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ci "$KEYCHAIN"
+          security list-keychains         -d user -s "$KEYCHAIN" login.keychain
+
+      - name: Build distributables
+        shell: bash
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_B64: ${{ secrets.APPLE_API_KEY_B64 }}
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          if [ -n "$APPLE_API_KEY_B64" ]; then
+            echo "$APPLE_API_KEY_B64" | base64 --decode > "$RUNNER_TEMP/api_key.p8"
+            export APPLE_API_KEY_PATH="$RUNNER_TEMP/api_key.p8"
+          fi
+          for arch in ${{ matrix.archs }}; do
+            echo "::group::make --arch=$arch"
+            npm run make -- --arch="$arch"
+            echo "::endgroup::"
+          done
+
+      - name: Create Linux tarballs
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p out/make/tar
+          for dir in out/memomi-linux-*; do
+            [ -d "$dir" ] || continue
+            base="$(basename "$dir")"
+            tar -czf "out/make/tar/$base.tar.gz" -C out "$base"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: memomi-${{ runner.os }}
+          path: out/make/**/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          fail_on_unmatched_files: false

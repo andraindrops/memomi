@@ -19,6 +19,11 @@ export function buildApplicationMenu(window: BrowserWindow): void {
           click: () => window.webContents.send(IPC.menuOpenBundle),
         },
         { type: "separator" },
+        {
+          label: "Sign Out",
+          click: () => window.webContents.send(IPC.menuSignOut),
+        },
+        { type: "separator" },
         isMac ? { role: "close" } : { role: "quit" },
       ],
     },

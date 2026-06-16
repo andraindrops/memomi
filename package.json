@@ -56,6 +56,8 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
+    "@clerk/clerk-js": "^6.17.0",
+    "@clerk/clerk-react": "^5.61.8",
     "@hookform/resolvers": "^5.4.0",
     "@milkdown/crepe": "^7.21.2",
     "@milkdown/kit": "^7.21.2",

@@ -32,6 +32,11 @@ const api: AppApi = {
       ipcRenderer.on(IPC.menuOpenBundle, listener);
       return () => { ipcRenderer.removeListener(IPC.menuOpenBundle, listener); };
     },
+    onSignOut: (callback: () => void) => {
+      const listener = () => callback();
+      ipcRenderer.on(IPC.menuSignOut, listener);
+      return () => { ipcRenderer.removeListener(IPC.menuSignOut, listener); };
+    },
   },
 };
 

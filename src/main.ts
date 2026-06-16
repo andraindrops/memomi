@@ -1,13 +1,21 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, dialog, shell } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerIpc } from '@/main/ipc';
 import { buildApplicationMenu } from '@/main/menu';
 import { openDefaultBundle } from '@/main/services/domain/bundle';
+import {
+  RENDERER_INDEX_URL,
+  RENDERER_ORIGIN,
+  startRendererServer,
+} from '@/main/renderer-server';
+import { frontendApiOrigin } from '@/shared/clerk-config';
 
 if (started) {
   app.quit();
 }
+
+app.commandLine.appendSwitch('use-mock-keychain');
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -21,12 +29,27 @@ const createWindow = () => {
     },
   });
 
+  const appOrigin = MAIN_WINDOW_VITE_DEV_SERVER_URL
+    ? new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin
+    : RENDERER_ORIGIN;
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (new URL(url).origin !== appOrigin) {
+      event.preventDefault();
+      console.warn(`[nav] blocked cross-origin navigation to ${url}`);
+    }
+  });
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      void shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
+    mainWindow.loadURL(RENDERER_INDEX_URL);
   }
 
   buildApplicationMenu(mainWindow);
@@ -34,6 +57,21 @@ const createWindow = () => {
 
 app.on('ready', async () => {
   registerIpc();
+  if (!MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    try {
+      await startRendererServer({
+        rendererDir: path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}`),
+        frontendApiOrigin: frontendApiOrigin({ publishableKey: CLERK_PUBLISHABLE_KEY }),
+      });
+    } catch (error) {
+      dialog.showErrorBox(
+        'Failed to start',
+        `Could not start the local renderer server (port may be in use).\n\n${String(error)}`,
+      );
+      app.quit();
+      return;
+    }
+  }
   await openDefaultBundle();
   createWindow();
 });

@@ -25,6 +25,7 @@ export const IPC = {
   conceptRename:          "concept:rename",
   conceptDirectoryCreate: "conceptDirectory:create",
   menuOpenBundle:         "menu:open-bundle",
+  menuSignOut:            "menu:sign-out",
 } as const;
 
 export interface AppApi {
@@ -51,6 +52,7 @@ export interface AppApi {
   };
   menu: {
     onOpenBundle(callback: () => void): () => void;
+    onSignOut(callback: () => void): () => void;
   };
 }
 

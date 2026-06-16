@@ -64,6 +64,10 @@ const config: ForgeConfig = {
     // prettier-ignore
     new FusesPlugin({
       version: FuseVersion.V1,
+      // Flipping fuses rewrites the Electron binary and invalidates its
+      // signature; re-apply an ad-hoc signature so it can launch on Apple
+      // Silicon (osxSign re-signs with Developer ID afterwards when enabled).
+      resetAdHocDarwinSignature: true,
       [FuseV1Options.RunAsNode]:                             false,
       [FuseV1Options.EnableCookieEncryption]:                true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]:  false,

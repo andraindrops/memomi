@@ -113,7 +113,7 @@ export async function createConcept({
     description: description ?? "",
     tags: [],
   };
-  const body = `# ${finalTitle}\n\nWrite content here.`;
+  const body = "Write content here.";
   const raw = serializeConcept({ frontmatter, body });
 
   await fs.mkdir(path.dirname(abs), { recursive: true });

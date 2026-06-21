@@ -66,23 +66,18 @@ export function SidebarTree({
   const handleDelete = (node: BundleNodeSchema) => {
     const message =
       node.kind === "directory"
-        ? `Delete folder "${node.name}" and everything inside it? This cannot be undone.`
-        : `Delete "${node.name}"? This cannot be undone.`;
+        ? `Delete folder "${nodeLabel(node)}" and everything inside it? This cannot be undone.`
+        : `Delete "${nodeLabel(node)}"? This cannot be undone.`;
     if (window.confirm(message)) void deleteEntry(node.path);
   };
 
-  const renameDefault =
-    renameTarget == null
-      ? ""
-      : renameTarget.kind === "directory"
-        ? renameTarget.name
-        : renameTarget.name.replace(/\.md$/i, "");
+  const renameDefault = renameTarget == null ? "" : nodeLabel(renameTarget);
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
       <PromptDialog
         open={renameTarget != null}
-        title={`Rename ${renameTarget?.name ?? ""}`}
+        title={`Rename ${renameTarget == null ? "" : nodeLabel(renameTarget)}`}
         label="New name"
         defaultValue={renameDefault}
         confirmLabel="Rename"
@@ -333,7 +328,7 @@ function TreeItem({
               <ChevronRight className="size-4 shrink-0" />
             )}
             <NodeIcon kind="directory" />
-            <span className="truncate">{node.name}</span>
+            <span className="truncate">{nodeLabel(node)}</span>
           </button>
           <RowAction
             title="New concept in folder"
@@ -391,7 +386,7 @@ function TreeItem({
         {...dragProps}
       >
         <NodeIcon kind={node.kind} />
-        <span className="truncate">{node.name}</span>
+        <span className="truncate">{nodeLabel(node)}</span>
       </button>
       <RowAction title="Rename" onClick={() => handlers.onRename(node)}>
         <Pencil className="size-4 text-muted-foreground" />
@@ -401,6 +396,12 @@ function TreeItem({
       </RowAction>
     </div>
   );
+}
+
+function nodeLabel(node: BundleNodeSchema): string {
+  return node.kind === "directory"
+    ? node.name
+    : node.name.replace(/\.md$/i, "");
 }
 
 // True when `path` is `ancestor` itself or nested under it.

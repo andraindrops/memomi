@@ -137,19 +137,137 @@ describe("concept service", () => {
     ).rejects.toThrow();
   });
 
-  it("rejects a rename onto an existing file", async () => {
-    await createConcept({ directory: "/", fileName: "a" });
-    await createConcept({ directory: "/", fileName: "b" });
+  it("rejects a folder rename onto an existing entry", async () => {
+    await createConceptDirectory({ parent: "/", name: "a" });
+    await createConceptDirectory({ parent: "/", name: "b" });
+    await expect(renameConcept({ path: "/a", newName: "b" })).rejects.toThrow();
+  });
+
+  it("rejects a folder rename with a path separator", async () => {
+    await createConceptDirectory({ parent: "/", name: "a" });
     await expect(
-      renameConcept({ path: "/a.md", newName: "b" }),
+      renameConcept({ path: "/a", newName: "sub/b" }),
     ).rejects.toThrow();
   });
 
-  it("rejects a rename with a path separator", async () => {
-    await createConcept({ directory: "/", fileName: "a" });
+  it("renames a concept by setting its title and deriving the filename", async () => {
+    await createConcept({ directory: "/", fileName: "a", title: "A" });
+    const { path: result } = await renameConcept({
+      path: "/a.md",
+      newName: "Sales Orders",
+    });
+    expect(result).toBe("/Sales Orders.md");
+    const concept = await readConcept({ path: "/Sales Orders.md" });
+    expect(concept.frontmatter.title).toBe("Sales Orders");
+  });
+
+  it("sanitizes a path separator when renaming a concept by title", async () => {
+    await createConcept({ directory: "/", fileName: "a", title: "A" });
+    const { path: result } = await renameConcept({
+      path: "/a.md",
+      newName: "x/y",
+    });
+    expect(result).toBe("/x-y.md");
+    const concept = await readConcept({ path: "/x-y.md" });
+    expect(concept.frontmatter.title).toBe("x/y");
+  });
+
+  it("rejects a rename onto a taken name, leaving the file and title intact", async () => {
+    await createConcept({ directory: "/", fileName: "a", title: "A" });
+    await createConcept({ directory: "/", fileName: "b", title: "B" });
     await expect(
-      renameConcept({ path: "/a.md", newName: "sub/b" }),
+      renameConcept({ path: "/a.md", newName: "b" }),
     ).rejects.toThrow();
+    const concept = await readConcept({ path: "/a.md" });
+    expect(concept.frontmatter.title).toBe("A");
+  });
+
+  it("renames the file when the frontmatter title changes", async () => {
+    await createConcept({
+      directory: "/",
+      fileName: "orders",
+      title: "Orders",
+    });
+    const updated = await updateConcept({
+      path: "/orders.md",
+      frontmatter: { type: "Concept", title: "Sales Orders" },
+      body: "# Sales Orders",
+    });
+    expect(updated.path).toBe("/Sales Orders.md");
+    expect(updated.title).toBe("Sales Orders");
+    await expect(readConcept({ path: "/orders.md" })).rejects.toThrow();
+  });
+
+  it("rewrites links when a title change renames the file", async () => {
+    await createConcept({
+      directory: "/",
+      fileName: "orders",
+      title: "Orders",
+    });
+    await createConcept({ directory: "/", fileName: "ref" });
+    const ref = await readConcept({ path: "/ref.md" });
+    await updateConcept({
+      path: "/ref.md",
+      frontmatter: ref.frontmatter,
+      body: "See [Orders](/orders.md).",
+    });
+
+    await updateConcept({
+      path: "/orders.md",
+      frontmatter: { type: "Concept", title: "Sales Orders" },
+      body: "# Sales Orders",
+    });
+
+    const reread = await readConcept({ path: "/ref.md" });
+    expect(reread.body).toContain("[Orders](/Sales Orders.md)");
+  });
+
+  it("rewrites the frontmatter title when the file is renamed", async () => {
+    await createConcept({
+      directory: "/",
+      fileName: "orders",
+      title: "Orders",
+    });
+    await renameConcept({ path: "/orders.md", newName: "products" });
+    const concept = await readConcept({ path: "/products.md" });
+    expect(concept.frontmatter.title).toBe("products");
+    expect(concept.title).toBe("products");
+  });
+
+  it("rejects a title change whose filename collides, writing nothing", async () => {
+    await createConcept({ directory: "/", fileName: "a", title: "A" });
+    await createConcept({ directory: "/", fileName: "Taken", title: "Taken" });
+    await expect(
+      updateConcept({
+        path: "/a.md",
+        frontmatter: { type: "Concept", title: "Taken" },
+        body: "# Taken",
+      }),
+    ).rejects.toThrow();
+    const concept = await readConcept({ path: "/a.md" });
+    expect(concept.frontmatter.title).toBe("A");
+    expect(concept.body).not.toContain("# Taken");
+  });
+
+  it("sanitizes path separators in a title when renaming the file", async () => {
+    await createConcept({ directory: "/", fileName: "n", title: "N" });
+    const updated = await updateConcept({
+      path: "/n.md",
+      frontmatter: { type: "Concept", title: "A/B" },
+      body: "# A/B",
+    });
+    expect(updated.path).toBe("/A-B.md");
+    expect(updated.frontmatter.title).toBe("A/B");
+  });
+
+  it("does not rename index.md based on its title", async () => {
+    await createConcept({ directory: "/", fileName: "index", title: "Home" });
+    const updated = await updateConcept({
+      path: "/index.md",
+      frontmatter: { type: "Concept", title: "Home" },
+      body: "# Home",
+    });
+    expect(updated.path).toBe("/index.md");
   });
 
   it("throws error when creating a concept with a path separator", async () => {

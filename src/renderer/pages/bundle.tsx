@@ -16,6 +16,7 @@ import type { UpdateConceptInputSchema } from "@/shared/schemas/concept";
 export function BundlePage() {
   const [root, setRoot] = useState<string | null>(null);
   const [tree, setTree] = useState<BundleNodeSchema | null>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [location, navigate] = useLocation();
 
   useEffect(() => {
@@ -181,13 +182,17 @@ export function BundlePage() {
   const updateEntry = useCallback(
     async (input: UpdateConceptInputSchema) => {
       try {
-        await api.concept.update(input);
+        const updated = await api.concept.update(input);
         await reload();
+        if (updated.path !== input.path) {
+          const current = parseCurrentConcept(location);
+          if (current === input.path) navigate(conceptHref(updated.path));
+        }
       } catch (error) {
         toast.error(errorMessage({ error, fallback: "Failed to save" }));
       }
     },
-    [reload],
+    [reload, location, navigate],
   );
 
   if (root == null) {
@@ -217,6 +222,8 @@ export function BundlePage() {
                 concept={loadedConcept}
                 updateEntry={updateEntry}
                 deleteEntry={deleteEntry}
+                inspectorOpen={inspectorOpen}
+                setInspectorOpen={setInspectorOpen}
               />
             ) : (
               <LoadingMessage />

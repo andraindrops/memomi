@@ -99,12 +99,7 @@ export async function createConcept({
   });
   const abs = resolveSafe({ root, relPath: bundlePath });
 
-  try {
-    await fs.access(abs);
-    throw new AppError(`A file already exists at ${bundlePath}`);
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-  }
+  await assertConceptAvailable({ root, bundlePath });
 
   const finalTitle = title ?? finalFileName.replace(/\.md$/i, "");
   const frontmatter: FrontmatterSchema = {
@@ -140,9 +135,22 @@ export async function updateConcept({
     throw new NotFoundError(`Concept ${bundlePath} not found`);
   }
 
+  const newBundlePath = await planTitleRename({
+    root,
+    bundlePath,
+    frontmatter,
+  });
+
   const raw = serializeConcept({ frontmatter, body });
   await fs.writeFile(abs, raw, "utf8");
-  return readConcept({ path: bundlePath });
+
+  if (newBundlePath == null) return readConcept({ path: bundlePath });
+  await moveConceptFile({
+    root,
+    bundlePath,
+    finalName: path.posix.basename(newBundlePath),
+  });
+  return readConcept({ path: newBundlePath });
 }
 
 export async function deleteConcept({
@@ -172,8 +180,7 @@ export async function renameConcept({
   const root = requireCurrentBundleRoot();
   const bundlePath = normalizeBundlePath({ path: p });
   const abs = resolveSafe({ root, relPath: bundlePath });
-
-  const trimmed = assertSafeName({ name: newName });
+  const fileName = path.posix.basename(bundlePath);
 
   let stat;
   try {
@@ -182,27 +189,74 @@ export async function renameConcept({
     throw new NotFoundError(`${bundlePath} not found`);
   }
 
-  let finalName = trimmed;
-  if (stat.isFile() && isMarkdownFile({ fileName: bundlePath })) {
-    finalName = isMarkdownFile({ fileName: trimmed })
-      ? trimmed
-      : `${trimmed}.md`;
+  if (
+    stat.isFile() &&
+    isMarkdownFile({ fileName }) &&
+    !isStructuralFile({ fileName })
+  ) {
+    const updated = await updateConceptTitle({
+      path: bundlePath,
+      title: newName,
+    });
+    return { path: updated.path };
   }
 
+  let finalName = assertSafeName({ name: newName });
+  if (stat.isFile() && isMarkdownFile({ fileName })) {
+    finalName = isMarkdownFile({ fileName: finalName })
+      ? finalName
+      : `${finalName}.md`;
+  }
+  const newBundlePath = await moveConceptFile({ root, bundlePath, finalName });
+  return { path: newBundlePath };
+}
+
+async function updateConceptTitle({
+  path: p,
+  title,
+}: {
+  path: string;
+  title: string;
+}): Promise<ConceptSchema> {
+  const root = requireCurrentBundleRoot();
+  const bundlePath = normalizeBundlePath({ path: p });
+  const abs = resolveSafe({ root, relPath: bundlePath });
+  const trimmed = title.trim();
+  if (trimmed === "") throw new AppError("Title must not be empty");
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(abs, "utf8");
+  } catch {
+    throw new NotFoundError(`Concept ${bundlePath} not found`);
+  }
+  const { frontmatter, body } = parseConcept({ raw });
+  return updateConcept({
+    path: bundlePath,
+    frontmatter: { ...frontmatter, title: trimmed },
+    body,
+  });
+}
+
+async function moveConceptFile({
+  root,
+  bundlePath,
+  finalName,
+}: {
+  root: string;
+  bundlePath: string;
+  finalName: string;
+}): Promise<string> {
+  const abs = resolveSafe({ root, relPath: bundlePath });
   const parent = path.posix.dirname(bundlePath);
   const newBundlePath = normalizeBundlePath({
     path: path.posix.join(parent, finalName),
   });
-  if (newBundlePath === bundlePath) return { path: bundlePath };
+  if (newBundlePath === bundlePath) return bundlePath;
+
+  await assertConceptAvailable({ root, bundlePath: newBundlePath });
 
   const newAbs = resolveSafe({ root, relPath: newBundlePath });
-  try {
-    await fs.access(newAbs);
-    throw new AppError(`A file already exists at ${newBundlePath}`);
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-  }
-
   await fs.rename(abs, newAbs);
   await preserveOrderOnRename({
     parentAbs: path.dirname(abs),
@@ -210,7 +264,7 @@ export async function renameConcept({
     newName: finalName,
   });
   await updateLinks({ root, from: bundlePath, to: newBundlePath });
-  return { path: newBundlePath };
+  return newBundlePath;
 }
 
 // Keep a renamed entry in its current position by swapping its name in the
@@ -229,6 +283,22 @@ async function preserveOrderOnRename({
   if (index === -1) return;
   order[index] = newName;
   await writeOrder({ absDir: parentAbs, order });
+}
+
+async function assertConceptAvailable({
+  root,
+  bundlePath,
+}: {
+  root: string;
+  bundlePath: string;
+}): Promise<void> {
+  const abs = resolveSafe({ root, relPath: bundlePath });
+  try {
+    await fs.access(abs);
+  } catch {
+    return;
+  }
+  throw new AppError(`A file already exists at ${bundlePath}`);
 }
 
 export async function createConceptDirectory({
@@ -310,6 +380,48 @@ function toConcept({
     isLog: fileName === "log.md",
     updatedAt: mtime?.toISOString(),
   };
+}
+
+async function planTitleRename({
+  root,
+  bundlePath,
+  frontmatter,
+}: {
+  root: string;
+  bundlePath: string;
+  frontmatter: FrontmatterSchema;
+}): Promise<string | null> {
+  const fileName = path.posix.basename(bundlePath);
+  if (!isMarkdownFile({ fileName }) || isStructuralFile({ fileName })) {
+    return null;
+  }
+  const title = asString({ value: frontmatter.title });
+  if (title == null) return null;
+  const base = titleToFileName({ title });
+  if (base == null) return null;
+  const finalName = `${base}.md`;
+  if (finalName === fileName) return null;
+
+  const parent = path.posix.dirname(bundlePath);
+  const newBundlePath = normalizeBundlePath({
+    path: path.posix.join(parent, finalName),
+  });
+  await assertConceptAvailable({ root, bundlePath: newBundlePath });
+  return newBundlePath;
+}
+
+function titleToFileName({ title }: { title: string }): string | null {
+  const cleaned = title
+    .replace(/[/\\]/g, "-")
+    .trim()
+    .replace(/^\.+/, "")
+    .trim();
+  if (cleaned === "" || cleaned === "." || cleaned === "..") return null;
+  return cleaned;
+}
+
+function isStructuralFile({ fileName }: { fileName: string }): boolean {
+  return fileName === "index.md" || fileName === "log.md";
 }
 
 function deriveTitle({

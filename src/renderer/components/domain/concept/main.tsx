@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Concept } from "@/renderer/components/domain/concept/concept";
 import { Inspector } from "@/renderer/components/domain/concept/inspector";
 import type {
@@ -17,17 +18,20 @@ export function Main({
   concept,
   updateEntry,
   deleteEntry,
+  inspectorOpen,
+  setInspectorOpen,
 }: {
   concept: ConceptSchema;
   updateEntry: (input: UpdateConceptInputSchema) => Promise<void>;
   deleteEntry: (path: string) => Promise<void>;
+  inspectorOpen: boolean;
+  setInspectorOpen: Dispatch<SetStateAction<boolean>>;
 }) {
   const [editor, setEditor] = useState<EditorState>({
     baseline: concept,
     frontmatter: concept.frontmatter,
     body: concept.body,
   });
-  const [inspectorOpen, setInspectorOpen] = useState(false);
 
   const setBody = useCallback((body: string) => {
     setEditor((prev) => ({ ...prev, body }));

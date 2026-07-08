@@ -1,0 +1,29 @@
+{
+  "flash": 1783583147455,
+  "openClick": 1783583149872,
+  "zoomIn": 1783583150971,
+  "prepEnter": 1783583153099,
+  "dropLine1": {
+    "x": 328,
+    "y": 143,
+    "width": 832,
+    "height": 21
+  },
+  "dragStart:Example 2": 1783583154570,
+  "drop:Example 2": 1783583155638,
+  "enter:Example 2": 1783583156368,
+  "dropLine2": {
+    "x": 328,
+    "y": 164,
+    "width": 832,
+    "height": 21
+  },
+  "dragStart:Example 3": 1783583158031,
+  "drop:Example 3": 1783583159089,
+  "enter:Example 3": 1783583159813,
+  "zoomOut": 1783583161014,
+  "close": 1783583163616,
+  "videoPath": "/Users/jtakahashi0604/works/andraindrops/memomi/captures/video4/page@eeeb36a376cc9eb2f07f5c6dcd4ae6d2.webm",
+  "savedTail": "e: \"\"\ntags: []\ntimestamp: \"2026-07-09T07:46:00.310Z\"\n---\n\n# Example 1\n\nThis is Example 1.\n[Example 2](@/daed6caa-91e7-4af5-8337-33593819be12.md)\n[Example 3](@/f630e58d-ae3a-4a0f-8353-1664985b4118.md)\n",
+  "linksLanded": true
+}

@@ -1,0 +1,31 @@
+{
+  "flash": 1783580583212,
+  "zoomMenu": 1783580584816,
+  "newButtonBox": {
+    "x": 215,
+    "y": 104,
+    "width": 24,
+    "height": 24
+  },
+  "createClick": 1783580586634,
+  "lineBox": {
+    "x": 328,
+    "y": 80,
+    "width": 832,
+    "height": 21
+  },
+  "zoomText": 1783580587678,
+  "typeStart": 1783580590367,
+  "typeEnd": 1783580594752,
+  "zoomOut": 1783580597753,
+  "settingsBox": {
+    "x": 1116,
+    "y": 8,
+    "width": 36,
+    "height": 36
+  },
+  "inspectorClick": 1783580599569,
+  "close": 1783580602425,
+  "videoPath": "/Users/jtakahashi0604/works/andraindrops/memomi/captures/video3/page@857e17572dc491712bc25f45f0213451.webm",
+  "savedMatch": true
+}

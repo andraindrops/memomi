@@ -20,8 +20,8 @@ export function useFetchState<T>({
     let cancelled = false;
     (async () => {
       try {
-        const data = await loader();
-        if (!cancelled) setState({ status: "loaded", value: data });
+        const loaded = await loader();
+        if (!cancelled) setState({ status: "loaded", value: loaded });
       } catch (error) {
         if (!cancelled) {
           setState({

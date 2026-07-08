@@ -1,0 +1,5 @@
+trim=start=0.92,
+setpts=PTS-STARTPTS,
+crop=1200:768:0:0,
+scale=2400:1536:flags=lanczos,
+zoompan=z='1+0.8*st(0,clip((it-3.196)/0.7,0,1))*ld(0)*(3-2*ld(0))-0.8*st(2,clip((it-13.239)/0.7,0,1))*ld(2)*(3-2*ld(2))':x='clip(667-iw/zoom/2,0,iw-iw/zoom)':y='clip(427-ih/zoom/2,0,ih-ih/zoom)':d=1:s=1200x768:fps=25

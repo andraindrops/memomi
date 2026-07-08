@@ -1,0 +1,3 @@
+crop=1200:768:0:0,
+scale=2400:1536:flags=lanczos,
+zoompan=z='1+st(0,clip((it-4.4)/0.7,0,1))*ld(0)*(3-2*ld(0))':x='clip(1200-iw/zoom/2,0,iw-iw/zoom)':y='clip(380-ih/zoom/2,0,ih-ih/zoom)':d=1:s=1200x768:fps=25

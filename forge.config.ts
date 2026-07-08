@@ -1,30 +1,39 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerZIP } from '@electron-forge/maker-zip';
-import { MakerDeb } from '@electron-forge/maker-deb';
-import { MakerRpm } from '@electron-forge/maker-rpm';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
+// prettier-ignore
+const macSigning = process.env.APPLE_API_KEY_ID
+  ? {
+      osxSign: {
+        optionsForFile: () => ({
+          hardenedRuntime: true,
+          entitlements: 'build/entitlements.plist',
+        }),
+      },
+      osxNotarize: {
+        appleApiKey:    process.env.APPLE_API_KEY_PATH as string,
+        appleApiKeyId:  process.env.APPLE_API_KEY_ID   as string,
+        appleApiIssuer: process.env.APPLE_API_ISSUER   as string,
+      },
+    }
+  : {
+      osxSign: { identity: '-' },
+    };
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: 'build/icon',
+    ...macSigning,
   },
-  rebuildConfig: {},
-  makers: [
-    new MakerSquirrel({}),
-    new MakerZIP({}, ['darwin']),
-    new MakerRpm({}),
-    new MakerDeb({}),
-  ],
+  makers: [new MakerDMG({ icon: 'build/icon.icns' }, ['darwin'])],
   plugins: [
     new VitePlugin({
-      // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
-      // If you are familiar with Vite configuration, it will look really familiar.
       build: [
         {
-          // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
           entry: 'src/main.ts',
           config: 'vite.main.config.ts',
           target: 'main',
@@ -42,16 +51,18 @@ const config: ForgeConfig = {
         },
       ],
     }),
-    // Fuses are used to enable/disable various Electron functionality
-    // at package time, before code signing the application
+    // prettier-ignore
     new FusesPlugin({
       version: FuseVersion.V1,
-      [FuseV1Options.RunAsNode]: false,
-      [FuseV1Options.EnableCookieEncryption]: true,
-      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      resetAdHocDarwinSignature: true,
+      [FuseV1Options.RunAsNode]:                             false,
+      // Why EnableCookieEncryption is false:
+      // This app needs to avoid Safe Storage alerts
+      [FuseV1Options.EnableCookieEncryption]:                false,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]:  false,
+      [FuseV1Options.EnableNodeCliInspectArguments]:         false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]:                   true,
     }),
   ],
 };

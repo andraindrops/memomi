@@ -118,3 +118,32 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Markdown heading colors in the Monaco editor: pure black faded 10% per level.
+   `!important` overrides the per-token color Monaco sets on the same span. */
+.okf-heading-1 {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+.okf-heading-2 {
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+.okf-heading-3 {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+.okf-heading-4 {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+.okf-heading-5 {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+.okf-heading-6 {
+  color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Page links `[label](@/path)` in the Monaco editor: styled like links and
+   navigable on a plain click (see monaco-setup `pageLinkAt`). */
+.okf-page-link {
+  color: #2563eb !important;
+  text-decoration: underline;
+  cursor: pointer;
+}

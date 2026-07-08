@@ -10,8 +10,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // Native modules and electron must not be bundled by Vite.
-      external: ['better-sqlite3', 'electron'],
+      external: ['electron'],
     },
   },
 });

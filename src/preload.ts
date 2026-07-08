@@ -1,19 +1,29 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { IPC, type AppApi, type SaveImageInput } from "@/shared/ipc";
-import type { CreateTodoInput, UpdateTodoInput } from "@/shared/schemas/todo";
+import { IPC, type AppApi } from "@/shared/ipc";
+import type { ReorderInputSchema } from "@/shared/schemas/bundle";
+import type {
+  CreateConceptInputSchema,
+  CreateConceptDirectoryInputSchema,
+  RenameConceptInputSchema,
+} from "@/shared/schemas/concept";
 
+// prettier-ignore
 const api: AppApi = {
-  todos: {
-    list: () => ipcRenderer.invoke(IPC.todosList),
-    get: (id: string) => ipcRenderer.invoke(IPC.todosGet, id),
-    create: (input: CreateTodoInput) =>
-      ipcRenderer.invoke(IPC.todosCreate, input),
-    update: (id: string, input: UpdateTodoInput) =>
-      ipcRenderer.invoke(IPC.todosUpdate, id, input),
-    delete: (id: string) => ipcRenderer.invoke(IPC.todosDelete, id),
+  bundle: {
+    current: () => ipcRenderer.invoke(IPC.bundleCurrent),
+    tree:    () => ipcRenderer.invoke(IPC.bundleTree),
+    reorder: (input: ReorderInputSchema) => ipcRenderer.invoke(IPC.bundleReorder, input),
   },
-  images: {
-    save: (input: SaveImageInput) => ipcRenderer.invoke(IPC.imagesSave, input),
+  concept: {
+    list:   ()                                => ipcRenderer.invoke(IPC.conceptList),
+    read:   ({ path }: { path: string })      => ipcRenderer.invoke(IPC.conceptRead,   path),
+    create: (input: CreateConceptInputSchema) => ipcRenderer.invoke(IPC.conceptCreate, input),
+    update: (input)                           => ipcRenderer.invoke(IPC.conceptUpdate, input),
+    delete: ({ path }: { path: string })      => ipcRenderer.invoke(IPC.conceptDelete, path),
+    rename: (input: RenameConceptInputSchema) => ipcRenderer.invoke(IPC.conceptRename, input),
+  },
+  conceptDirectory: {
+    create: (input: CreateConceptDirectoryInputSchema) => ipcRenderer.invoke(IPC.conceptDirectoryCreate, input),
   },
 };
 
